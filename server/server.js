@@ -132,21 +132,24 @@ async function downloadToFile(url, filePath) {
 
 async function assembleConcatMp4({ campaignId, shotFiles }) {
   if (!ffmpegPath) throw new Error('ffmpeg-static not available')
-  const listPath = path.join(os.tmpdir(), `liquid-concat-${campaignId}.txt`)
-  const listContent = shotFiles.map((f) => `file '${f.replace(/'/g, "'\\''")}'`).join('\n')
-  await fs.writeFile(listPath, listContent, 'utf8')
-
   const outputPath = path.join(OUTPUTS_DIR, `${campaignId}.mp4`)
+  const inputs = []
+  for (const filePath of shotFiles) {
+    inputs.push('-i', filePath)
+  }
+
+  const concatInputs = shotFiles.map((_, idx) => `[${idx}:v:0]`).join('')
+  const filter = `${concatInputs}concat=n=${shotFiles.length}:v=1:a=0[outv]`
+
   const args = [
     '-hide_banner',
     '-loglevel',
     'error',
-    '-f',
-    'concat',
-    '-safe',
-    '0',
-    '-i',
-    listPath,
+    ...inputs,
+    '-filter_complex',
+    filter,
+    '-map',
+    '[outv]',
     '-an',
     '-c:v',
     'libx264',
@@ -166,11 +169,6 @@ async function assembleConcatMp4({ campaignId, shotFiles }) {
     err.status = 502
     err.details = { stdout: r.stdout, stderr: r.stderr }
     throw err
-  }
-  try {
-    await fs.unlink(listPath)
-  } catch {
-    null
   }
   return outputPath
 }

@@ -216,7 +216,7 @@ export function AppProvider({ children }) {
         let changed = false
         const next = prev.map((v) => {
           if (v.status !== 'generating') return v
-          if (pixVerseEndpoint && v.job?.remote?.jobId) return v
+          if (pixVerseEndpoint) return v
           const startedAt = v.job?.startedAt || 0
           const etaMs = v.job?.etaMs || 0
           if (!startedAt || !etaMs) return v

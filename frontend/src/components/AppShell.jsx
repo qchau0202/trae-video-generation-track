@@ -1,78 +1,75 @@
-import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Zap, LogOut } from 'lucide-react';
-import { clearSession, getSession } from '../lib/session';
+import { NavLink, Outlet } from 'react-router-dom'
+import { useApp } from '../context/useApp'
+import { Zap } from 'lucide-react'
 
-const navItems = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/brand-vault', label: 'Brand Vault' },
-  { to: '/products', label: 'Products' },
-  { to: '/offers', label: 'Offers' },
-  { to: '/frameworks', label: 'Frameworks' },
-  { to: '/campaigns', label: 'Campaigns' },
-  { to: '/share-links', label: 'Share Links' },
-  { to: '/exports', label: 'Exports' },
-  { to: '/variants', label: 'Variants' },
-  { to: '/video-assets', label: 'Video Assets' },
-  { to: '/jobs', label: 'Jobs' },
-];
+const navItemBase = 'rounded-lg px-3 py-2 text-sm font-medium transition-colors'
 
-function classNames(...xs) {
-  return xs.filter(Boolean).join(' ');
-}
-
-export default function AppShell({ children }) {
-  const navigate = useNavigate();
-  const session = getSession();
-
-  const onLogout = () => {
-    clearSession();
-    navigate('/login');
-  };
+function AppShell() {
+  const { vaults, activeVaultId } = useApp()
+  const activeVault = vaults.find((v) => v.id === activeVaultId) || null
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <div className="border-b bg-white sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap className="w-6 h-6 text-primary fill-current" />
-            <div className="font-black tracking-tight">Liquid</div>
-            <div className="text-xs text-gray-500">
-              {session?.workspace?.name ? `Workspace: ${session.workspace.name}` : ''}
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="flex min-h-screen flex-col">
+        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/80 backdrop-blur">
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-trae-600 text-white">
+                <Zap className="h-5 w-5" />
+              </div>
+              <div className="leading-tight">
+                <div className="text-sm font-semibold">Liquid</div>
+                <div className="text-xs text-slate-500">
+                  {activeVault?.name ? activeVault.name : 'Ad video demo'}
+                </div>
+              </div>
             </div>
-          </div>
-          <button
-            onClick={onLogout}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm hover:bg-gray-50"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </button>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-12 gap-6">
-        <aside className="col-span-12 md:col-span-3">
-          <div className="bg-white border rounded-xl p-2">
-            {navItems.map((item) => (
+            <nav className="flex flex-wrap items-center gap-2">
               <NavLink
-                key={item.to}
-                to={item.to}
+                to="/"
                 className={({ isActive }) =>
-                  classNames(
-                    'block px-3 py-2 rounded-lg text-sm font-medium',
-                    isActive ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-50'
-                  )
+                  isActive
+                    ? `${navItemBase} bg-trae-100 text-trae-700`
+                    : `${navItemBase} text-slate-700 hover:bg-slate-100`
                 }
               >
-                {item.label}
+                Vaults
               </NavLink>
-            ))}
+              {activeVaultId ? (
+                <>
+                  <NavLink
+                    to={`/vault/${activeVaultId}`}
+                    className={({ isActive }) =>
+                      isActive
+                        ? `${navItemBase} bg-trae-100 text-trae-700`
+                        : `${navItemBase} text-slate-700 hover:bg-slate-100`
+                    }
+                  >
+                    Vault
+                  </NavLink>
+                  <NavLink
+                    to={`/vault/${activeVaultId}/videos`}
+                    className={({ isActive }) =>
+                      isActive
+                        ? `${navItemBase} bg-trae-100 text-trae-700`
+                        : `${navItemBase} text-slate-700 hover:bg-slate-100`
+                    }
+                  >
+                    Videos
+                  </NavLink>
+                </>
+              ) : null}
+            </nav>
           </div>
-        </aside>
-        <main className="col-span-12 md:col-span-9">{children}</main>
+        </header>
+
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
+          <Outlet />
+        </main>
       </div>
     </div>
-  );
+  )
 }
 
+export default AppShell

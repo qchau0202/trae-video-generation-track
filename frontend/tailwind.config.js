@@ -7,8 +7,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: "#1d4ed8",
-        secondary: "#64748b",
+        trae: {
+          50: "#f6f2ff",
+          100: "#ede6ff",
+          500: "#863bff",
+          600: "#7e14ff",
+          700: "#6a00ff",
+        },
+        primary: "#863bff",
       }
     },
   },

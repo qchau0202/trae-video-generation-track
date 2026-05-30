@@ -1,83 +1,80 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import AppShell from '../components/AppShell';
-import { api } from '../api/client';
+import { useNavigate } from 'react-router-dom'
+import { useApp } from '../context/useApp'
+import { ArrowRight, FolderPlus, Zap } from 'lucide-react'
 
-export default function Dashboard() {
-  const [stats, setStats] = useState({ campaigns: 0, brandProfiles: 0, frameworks: 0 });
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let alive = true;
-    const load = async () => {
-      try {
-        const [campaigns, brandProfiles, frameworks] = await Promise.all([
-          api.get('/campaigns'),
-          api.get('/brand-profiles'),
-          api.get('/framework-templates'),
-        ]);
-        if (!alive) return;
-        setStats({
-          campaigns: campaigns.data.items.length,
-          brandProfiles: brandProfiles.data.items.length,
-          frameworks: frameworks.data.items.length,
-        });
-      } catch (err) {
-        if (!alive) return;
-        setError(err?.response?.data?.message || err?.message || 'Failed to load');
-      }
-    };
-    load();
-    return () => {
-      alive = false;
-    };
-  }, []);
+function Dashboard() {
+  const navigate = useNavigate()
+  const { vaults, setActiveVaultId } = useApp()
 
   return (
-    <AppShell>
-      <div className="space-y-6">
-        <div className="bg-white border rounded-2xl p-6">
-          <div className="text-2xl font-black">Campaign appliance</div>
-          <div className="text-gray-600 mt-2">
-            Brand Vault → Framework → Assets → Generate (PixVerse) → Compare → Feedback → Export
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-trae-100 px-4 py-2 text-sm font-medium text-trae-700">
+              <Zap className="h-4 w-4" />
+              Ad video demo
+            </div>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight">Brand Vaults</h1>
+            <p className="mt-2 text-sm text-slate-600">
+              Create a vault once, upload your brand + product assets, then generate versions of ad videos.
+            </p>
           </div>
-          {error ? <div className="text-sm text-red-600 mt-3">{error}</div> : null}
-        </div>
-
-        <div className="grid sm:grid-cols-3 gap-4">
-          <div className="bg-white border rounded-2xl p-5">
-            <div className="text-sm text-gray-500">Brand Profiles</div>
-            <div className="text-3xl font-black mt-1">{stats.brandProfiles}</div>
-            <Link to="/brand-vault" className="text-primary font-semibold text-sm mt-3 inline-block">
-              Manage
-            </Link>
-          </div>
-          <div className="bg-white border rounded-2xl p-5">
-            <div className="text-sm text-gray-500">Frameworks</div>
-            <div className="text-3xl font-black mt-1">{stats.frameworks}</div>
-            <Link to="/frameworks" className="text-primary font-semibold text-sm mt-3 inline-block">
-              Browse
-            </Link>
-          </div>
-          <div className="bg-white border rounded-2xl p-5">
-            <div className="text-sm text-gray-500">Campaigns</div>
-            <div className="text-3xl font-black mt-1">{stats.campaigns}</div>
-            <Link to="/campaigns" className="text-primary font-semibold text-sm mt-3 inline-block">
-              View
-            </Link>
-          </div>
-        </div>
-
-        <div className="bg-white border rounded-2xl p-6">
-          <div className="font-bold">Quick start</div>
-          <ol className="list-decimal pl-5 mt-2 text-sm text-gray-700 space-y-1">
-            <li>Create a Brand Profile in Brand Vault</li>
-            <li>Create a Product and an Offer</li>
-            <li>Create a Campaign and click Generate</li>
-          </ol>
+          <button
+            type="button"
+            onClick={() => navigate('/vault/new')}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-trae-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-trae-700"
+          >
+            <FolderPlus className="h-4 w-4" />
+            Create vault
+          </button>
         </div>
       </div>
-    </AppShell>
-  );
+
+      {vaults.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
+          <div className="text-sm font-semibold">No vaults yet</div>
+          <div className="mt-2 text-sm text-slate-600">Create one to start generating ad videos.</div>
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={() => navigate('/vault/new')}
+              className="inline-flex items-center gap-2 rounded-lg bg-trae-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-trae-700"
+            >
+              Create your first vault
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {vaults.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              onClick={() => {
+                setActiveVaultId(v.id)
+                navigate(`/vault/${v.id}`)
+              }}
+              className="text-left rounded-2xl border border-slate-200 bg-white p-6 hover:bg-slate-50"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-lg font-semibold">{v.name || 'Untitled vault'}</div>
+                  <div className="mt-1 line-clamp-2 text-sm text-slate-600">{v.description || 'No description'}</div>
+                </div>
+                <div className="text-xs font-medium text-slate-500">{v.productCategory || '—'}</div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span className="rounded-full bg-slate-100 px-3 py-1">{(v.productImages || []).length} images</span>
+                <span className="rounded-full bg-slate-100 px-3 py-1">{v.productType || '—'}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
+export default Dashboard

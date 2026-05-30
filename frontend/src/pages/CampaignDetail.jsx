@@ -1,330 +1,251 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import AppShell from '../components/AppShell';
-import PixVerseVideo from '../components/PixVerseVideo';
-import { api } from '../api/client';
+import { useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useApp } from '../context/useApp'
+import JSZip from 'jszip'
+import { saveAs } from 'file-saver'
+import { Download, RefreshCw } from 'lucide-react'
 
-function statusBadge(status) {
-  const map = {
-    draft: 'bg-gray-100 text-gray-700',
-    generating: 'bg-blue-100 text-blue-700',
-    ready: 'bg-green-100 text-green-700',
-    failed: 'bg-red-100 text-red-700',
-    archived: 'bg-gray-100 text-gray-600',
-  };
-  return map[status] || 'bg-gray-100 text-gray-700';
-}
+function CampaignDetail() {
+  const { vaultId, videoId } = useParams()
+  const navigate = useNavigate()
+  const { vaults, videos, updateVideo, rebuildVideoPrompt, startVideoGeneration, regenerateVideo } = useApp()
+  const vault = useMemo(() => vaults.find((v) => v.id === vaultId) || null, [vaultId, vaults])
+  const video = useMemo(() => videos.find((v) => v.id === videoId && v.vaultId === vaultId) || null, [videoId, videos, vaultId])
 
-function variantLabel(variantType) {
-  if (variantType === 'problem-hook') return 'Hook A (Problem)';
-  if (variantType === 'trend-hook') return 'Hook B (Trend)';
-  if (variantType === 'discount-hook') return 'Hook C (Discount)';
-  return 'Variant';
-}
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [confirmMode, setConfirmMode] = useState('generate')
 
-export default function CampaignDetail() {
-  const params = useParams();
-  const [data, setData] = useState(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [selectedVariantId, setSelectedVariantId] = useState('');
-  const [selectedFormat, setSelectedFormat] = useState('9:16');
-  const [feedbackItems, setFeedbackItems] = useState([]);
-  const [vote, setVote] = useState(5);
-  const [comment, setComment] = useState('');
-  const [shareUrl, setShareUrl] = useState('');
-
-  const campaignId = params.id;
-
-  const variants = data?.variants || [];
-  const videoAssets = data?.videoAssets || [];
-  const jobs = data?.jobs || [];
-
-  const selectedVariant = useMemo(() => variants.find((v) => v._id === selectedVariantId) || null, [
-    variants,
-    selectedVariantId,
-  ]);
-
-  const selectedVideo = useMemo(() => {
-    if (!selectedVariant) return null;
-    const match = videoAssets.find((a) => a.variantId === selectedVariant._id && a.format === selectedFormat);
-    if (match) return match;
-    return videoAssets.find((a) => a.variantId === selectedVariant._id) || null;
-  }, [videoAssets, selectedVariant, selectedFormat]);
-
-  const load = async () => {
-    const { data: resp } = await api.get(`/campaigns/${campaignId}`);
-    setData(resp);
-    const nextSelected = selectedVariantId || resp.variants?.[0]?._id || '';
-    setSelectedVariantId(nextSelected);
-  };
-
-  const loadFeedback = async (variantId) => {
-    if (!variantId) return;
-    const { data: resp } = await api.get(`/feedback?variantId=${encodeURIComponent(variantId)}`);
-    setFeedbackItems(resp.items);
-  };
-
-  useEffect(() => {
-    let alive = true;
-    load()
-      .then(() => {})
-      .catch((err) => alive && setError(err?.response?.data?.message || err?.message || 'Failed to load'));
-    return () => {
-      alive = false;
-    };
-  }, [campaignId]);
-
-  useEffect(() => {
-    if (!selectedVariantId) return;
-    loadFeedback(selectedVariantId).catch(() => {});
-  }, [selectedVariantId]);
-
-  useEffect(() => {
-    if (data?.campaign?.status !== 'generating') return;
-    const t = setInterval(() => {
-      load().catch(() => {});
-    }, 1500);
-    return () => clearInterval(t);
-  }, [data?.campaign?.status]);
-
-  const generate = async ({ regenerate } = { regenerate: false }) => {
-    setError('');
-    setLoading(true);
-    try {
-      await api.post(`/campaigns/${campaignId}/generate`, { regenerate });
-      await load();
-    } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Generate failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const submitFeedback = async (e) => {
-    e.preventDefault();
-    if (!selectedVariantId) return;
-    setError('');
-    try {
-      await api.post('/feedback', { variantId: selectedVariantId, vote, comment });
-      setComment('');
-      await loadFeedback(selectedVariantId);
-    } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Feedback failed');
-    }
-  };
-
-  const createShareLink = async () => {
-    setError('');
-    try {
-      const { data: resp } = await api.post('/share-links', {
-        campaignId,
-        permissions: ['view', 'comment', 'vote'],
-      });
-      const url = `${window.location.origin}/share/${resp.item.token}`;
-      setShareUrl(url);
-    } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Share link failed');
-    }
-  };
-
-  const exportBundle = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      await api.post('/export-bundles', { campaignId });
-    } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Export failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const jobRows = useMemo(() => {
-    if (!selectedVariant) return [];
-    return jobs
-      .filter((j) => j.variantId === selectedVariant._id)
-      .sort((a, b) => String(a.format).localeCompare(String(b.format)));
-  }, [jobs, selectedVariant]);
-
-  if (!data?.campaign) {
+  if (!vault || !video) {
     return (
-      <AppShell>
-        <div className="bg-white border rounded-2xl p-6">
-          <div className="font-bold">Loading…</div>
-          {error ? <div className="text-sm text-red-600 mt-2">{error}</div> : null}
-        </div>
-      </AppShell>
-    );
+      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="text-sm font-semibold">Video not found</div>
+      </div>
+    )
   }
 
-  const campaign = data.campaign;
+  const asset = (video.videoAssets || [])[0] || null
+  const canGenerate = Boolean((video.ideaText || '').trim()) && (vault.productImages || []).length > 0
+
+  const handleExport = async () => {
+    const zip = new JSZip()
+    const exportManifest = {
+      vault,
+      video,
+    }
+
+    zip.file('manifest.json', JSON.stringify(exportManifest, null, 2))
+    zip.file(
+      'prompt.txt',
+      [
+        video.generation?.prompt ? `PROMPT:\n${video.generation.prompt}\n` : '',
+        video.generation?.negativePrompt ? `\nNEGATIVE:\n${video.generation.negativePrompt}\n` : '',
+        video.ideaText ? `\nIDEA:\n${video.ideaText}\n` : '',
+      ]
+        .filter(Boolean)
+        .join('')
+    )
+
+    const exportVideos = []
+    const exportAsset = asset?.url ? { name: 'video.mp4', url: asset.url } : null
+    if (exportAsset) exportVideos.push(exportAsset)
+
+    for (const item of exportVideos) {
+      try {
+        const res = await fetch(item.url)
+        const blob = await res.blob()
+        zip.file(`videos/${item.name}`, blob)
+      } catch {
+        zip.file(`videos/${item.name}.txt`, `Could not fetch video. URL: ${item.url}`)
+      }
+    }
+
+    const content = await zip.generateAsync({ type: 'blob' })
+    saveAs(content, `liquid-video-${video.id}.zip`)
+  }
+
+  const resetPromptToAuto = () => {
+    const prompt = rebuildVideoPrompt(video.id)
+    if (prompt) updateVideo(video.id, { generation: { prompt } })
+  }
+
+  const requestGenerate = (mode) => {
+    setConfirmMode(mode)
+    setConfirmOpen(true)
+  }
+
+  const confirmGenerate = () => {
+    if (confirmMode === 'regenerate') {
+      regenerateVideo(video.id)
+    } else {
+      startVideoGeneration(video.id)
+    }
+    setConfirmOpen(false)
+    navigate(`/vault/${vault.id}/videos/${video.id}/generate`)
+  }
 
   return (
-    <AppShell>
-      <div className="space-y-6">
-        <div className="bg-white border rounded-2xl p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <div className="text-xl font-black truncate">{campaign.name}</div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge(campaign.status)}`}>{campaign.status}</span>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">Campaign ID: {campaign._id}</div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => generate({ regenerate: false })}
-                disabled={loading}
-                className="bg-primary text-white rounded-lg px-4 py-2 font-semibold disabled:opacity-60"
-                type="button"
-              >
-                Generate
-              </button>
-              <button
-                onClick={() => generate({ regenerate: true })}
-                disabled={loading}
-                className="border rounded-lg px-4 py-2 font-semibold hover:bg-gray-50 disabled:opacity-60"
-                type="button"
-              >
-                Regenerate
-              </button>
-              <button
-                onClick={createShareLink}
-                className="border rounded-lg px-4 py-2 font-semibold hover:bg-gray-50"
-                type="button"
-              >
-                Create share link
-              </button>
-              <button
-                onClick={exportBundle}
-                disabled={loading}
-                className="border rounded-lg px-4 py-2 font-semibold hover:bg-gray-50 disabled:opacity-60"
-                type="button"
-              >
-                Export bundle
-              </button>
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">Video version</h1>
+            <div className="mt-1 text-sm text-slate-600">
+              {video.generation?.model || 'PixVerse V6'} • {video.status} • Vault: {vault.name}
             </div>
           </div>
 
-          {shareUrl ? (
-            <div className="mt-4 text-sm">
-              Share URL:{' '}
-              <Link className="text-primary font-semibold break-all" to={shareUrl.replace(window.location.origin, '')}>
-                {shareUrl}
-              </Link>
-            </div>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(`/vault/${vault.id}/videos`)}
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Back to versions
+            </button>
+            <button
+              type="button"
+              onClick={handleExport}
+              className="inline-flex items-center gap-2 rounded-lg bg-trae-600 px-4 py-2 text-sm font-medium text-white hover:bg-trae-700"
+            >
+              <Download className="h-4 w-4" />
+              Export package
+            </button>
+          </div>
+        </div>
+      </div>
 
-          {error ? <div className="text-sm text-red-600 mt-3">{error}</div> : null}
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          {asset?.url && video.status === 'ready' ? (
+            <video src={asset.url} controls className="w-full aspect-[9/16] max-h-[75vh] bg-black object-cover" />
+          ) : (
+            <div className="flex aspect-[9/16] w-full items-center justify-center bg-slate-100 text-slate-600">
+              {video.status === 'generating' ? 'Rendering…' : 'No video yet'}
+            </div>
+          )}
         </div>
 
-        <div className="bg-white border rounded-2xl p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {variants.map((v) => (
+        <div className="lg:col-span-2 space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="text-sm font-semibold">Settings</div>
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">Campaign idea</label>
+                <textarea
+                    value={video.ideaText || ''}
+                    onChange={(e) => updateVideo(video.id, { ideaText: e.target.value })}
+                  rows={4}
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                />
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">Duration</label>
+                  <select
+                      value={video.generation?.durationSec || 30}
+                      onChange={(e) => updateVideo(video.id, { generation: { durationSec: Number(e.target.value) } })}
+                    className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                  >
+                    <option value={15}>15s</option>
+                    <option value={20}>20s</option>
+                    <option value={30}>30s</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">CTA</label>
+                  <select
+                      value={video.generation?.ctaText || 'Shop Now'}
+                      onChange={(e) => updateVideo(video.id, { generation: { ctaText: e.target.value } })}
+                    className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                  >
+                    <option>Shop Now</option>
+                    <option>Learn More</option>
+                    <option>Get Offer</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">Prompt</label>
+                <textarea
+                    value={video.generation?.prompt || ''}
+                    onChange={(e) => updateVideo(video.id, { generation: { prompt: e.target.value } })}
+                  rows={7}
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                />
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={resetPromptToAuto}
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Reset to auto
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">Negative prompt (optional)</label>
+                <input
+                    value={video.generation?.negativePrompt || ''}
+                    onChange={(e) => updateVideo(video.id, { generation: { negativePrompt: e.target.value } })}
+                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-semibold">Actions</div>
+              <div className="text-xs font-medium text-slate-500">{(vault.productImages || []).length} vault images</div>
+            </div>
+            <div className="mt-4 grid gap-2">
               <button
-                key={v._id}
-                onClick={() => setSelectedVariantId(v._id)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-semibold border ${
-                  v._id === selectedVariantId ? 'bg-primary text-white border-primary' : 'hover:bg-gray-50'
+                type="button"
+                disabled={!canGenerate}
+                onClick={() => requestGenerate(video.status === 'ready' ? 'regenerate' : 'generate')}
+                className={`rounded-lg px-4 py-2 text-sm font-medium text-white ${
+                  canGenerate ? 'bg-trae-600 hover:bg-trae-700' : 'bg-slate-300 cursor-not-allowed'
                 }`}
-                type="button"
               >
-                {variantLabel(v.variantType)} · {v.status}
+                {video.status === 'ready' ? 'Regenerate video' : 'Generate video'}
               </button>
-            ))}
-            <div className="ml-auto flex items-center gap-2">
-              <div className="text-sm text-gray-500">Format</div>
-              <select
-                value={selectedFormat}
-                onChange={(e) => setSelectedFormat(e.target.value)}
-                className="border rounded-lg px-3 py-1.5 text-sm"
-              >
-                <option value="9:16">9:16</option>
-                <option value="1:1">1:1</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="bg-white border rounded-2xl p-6">
-            <div className="font-bold mb-4">Preview</div>
-            {selectedVideo ? (
-              <PixVerseVideo videoSrc={selectedVideo.videoUrl} />
-            ) : (
-              <div className="text-sm text-gray-600">No video ready for this variant yet.</div>
-            )}
-            {selectedVideo ? (
-              <div className="text-xs text-gray-500 mt-3">
-                {selectedVideo.format} · {selectedVideo.durationSeconds}s
-              </div>
-            ) : null}
-
-            <div className="mt-6">
-              <div className="font-bold mb-2">Jobs</div>
-              {jobRows.length === 0 ? <div className="text-sm text-gray-600">No jobs yet.</div> : null}
-              <div className="space-y-2">
-                {jobRows.map((j) => (
-                  <div key={j._id} className="border rounded-lg p-3 text-sm flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold">{j.format}</div>
-                      <div className="text-xs text-gray-500">{j.status}</div>
-                    </div>
-                    <div className="text-xs text-gray-500 max-w-64 truncate">{j.errorMessage || j.providerJobId || ''}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white border rounded-2xl p-6">
-            <div className="font-bold mb-4">Feedback</div>
-            <form onSubmit={submitFeedback} className="space-y-3">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-1">
-                  <label className="text-sm font-medium">Vote (1-5)</label>
-                  <input
-                    value={vote}
-                    onChange={(e) => setVote(e.target.value)}
-                    className="mt-1 w-full border rounded-lg px-3 py-2"
-                    type="number"
-                    min={1}
-                    max={5}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-sm font-medium">Comment</label>
-                  <input
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    className="mt-1 w-full border rounded-lg px-3 py-2"
-                    placeholder="What works / what to improve?"
-                  />
-                </div>
-              </div>
-              <button className="bg-primary text-white rounded-lg px-4 py-2 font-semibold" type="submit">
-                Add feedback
-              </button>
-            </form>
-
-            <div className="mt-6 space-y-2">
-              {feedbackItems.length === 0 ? <div className="text-sm text-gray-600">No feedback yet.</div> : null}
-              {feedbackItems.map((f) => (
-                <div key={f._id} className="border rounded-lg p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-semibold">{f.authorName || 'User'}</div>
-                    <div className="text-xs text-gray-500">{f.vote ? `Vote: ${f.vote}` : ''}</div>
-                  </div>
-                  {f.comment ? <div className="text-sm text-gray-700 mt-1">{f.comment}</div> : null}
-                  <div className="text-xs text-gray-500 mt-2">{new Date(f.createdAt).toLocaleString()}</div>
-                </div>
-              ))}
             </div>
           </div>
         </div>
       </div>
-    </AppShell>
-  );
+
+      {confirmOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
+            <div className="text-lg font-semibold">Confirm generation</div>
+            <div className="mt-2 text-sm text-slate-600">
+              This will generate a new ad video in PixVerse V6 using your vault assets and current settings.
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmGenerate}
+                className="rounded-lg bg-trae-600 px-4 py-2 text-sm font-medium text-white hover:bg-trae-700"
+              >
+                Confirm & start
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
+export default CampaignDetail

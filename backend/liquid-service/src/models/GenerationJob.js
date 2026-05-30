@@ -20,7 +20,9 @@ const GenerationJobSchema = new mongoose.Schema(
 );
 
 GenerationJobSchema.index({ status: 1, lockedAt: 1, createdAt: 1 });
-GenerationJobSchema.index({ variantId: 1, format: 1 }, { unique: true });
+GenerationJobSchema.index(
+  { variantId: 1, format: 1 },
+  { unique: true, partialFilterExpression: { deletedAt: null } }
+);
 
 module.exports = mongoose.model('GenerationJob', GenerationJobSchema);
-

@@ -11,7 +11,9 @@ const VariantSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-VariantSchema.index({ campaignId: 1, variantType: 1 }, { unique: true });
+VariantSchema.index(
+  { campaignId: 1, variantType: 1 },
+  { unique: true, partialFilterExpression: { deletedAt: null } }
+);
 
 module.exports = mongoose.model('Variant', VariantSchema);
-

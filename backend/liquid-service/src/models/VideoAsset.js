@@ -15,7 +15,9 @@ const VideoAssetSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-VideoAssetSchema.index({ variantId: 1, format: 1 }, { unique: true });
+VideoAssetSchema.index(
+  { variantId: 1, format: 1 },
+  { unique: true, partialFilterExpression: { deletedAt: null } }
+);
 
 module.exports = mongoose.model('VideoAsset', VideoAssetSchema);
-

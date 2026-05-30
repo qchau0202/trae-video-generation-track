@@ -10,7 +10,9 @@ const WorkspaceMemberSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-WorkspaceMemberSchema.index({ workspaceId: 1, userId: 1 }, { unique: true });
+WorkspaceMemberSchema.index(
+  { workspaceId: 1, userId: 1 },
+  { unique: true, partialFilterExpression: { deletedAt: null } }
+);
 
 module.exports = mongoose.model('WorkspaceMember', WorkspaceMemberSchema);
-

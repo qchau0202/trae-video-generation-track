@@ -138,5 +138,55 @@ async function publicView(req, res, next) {
   }
 }
 
-module.exports = { list, get, create, update, remove, publicView };
+async function publicCreateFeedback(req, res, next) {
+  try {
+    const { token } = req.params;
+    const link = await ShareLink.findOne({ token, deletedAt: null });
+    if (!link) {
+      res.status(404);
+      throw new Error('Not found');
+    }
+    if (link.expiresAt && link.expiresAt.getTime() <= Date.now()) {
+      res.status(410);
+      throw new Error('Share link expired');
+    }
+    const permissions = Array.isArray(link.permissions) ? link.permissions : ['view'];
+    if (!permissions.includes('comment') && !permissions.includes('vote')) {
+      res.status(403);
+      throw new Error('Feedback not allowed for this share link');
+    }
 
+    const { variantId: bodyVariantId, authorName, vote, comment } = req.body || {};
+    const variantId = link.variantId || bodyVariantId;
+    if (!variantId) {
+      res.status(400);
+      throw new Error('variantId is required');
+    }
+
+    const variant = await Variant.findOne({ _id: variantId, deletedAt: null });
+    if (!variant) {
+      res.status(404);
+      throw new Error('Variant not found');
+    }
+
+    if (link.campaignId && String(variant.campaignId) !== String(link.campaignId)) {
+      res.status(403);
+      throw new Error('Variant not allowed for this campaign share link');
+    }
+
+    const feedback = await Feedback.create({
+      workspaceId: link.workspaceId,
+      variantId: variant._id,
+      authorUserId: null,
+      authorName: authorName ? String(authorName).trim() : 'Guest',
+      vote: vote === null || vote === undefined ? null : Number(vote),
+      comment: comment ? String(comment) : '',
+    });
+
+    res.status(201).json({ item: feedback });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { list, get, create, update, remove, publicView, publicCreateFeedback };

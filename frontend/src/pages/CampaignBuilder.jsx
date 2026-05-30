@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/useApp'
 import Dropzone from '../components/Dropzone'
-import { ArrowRight, Play, PlusCircle, RefreshCw } from 'lucide-react'
+import { ArrowRight, ChevronRight, Play, PlusCircle, RefreshCw } from 'lucide-react'
 
 function CampaignBuilder() {
   const navigate = useNavigate()
@@ -63,8 +63,10 @@ function CampaignBuilder() {
 
   if (!vault) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <div className="text-sm font-semibold">Vault not found</div>
+      <div className="card">
+        <div className="card-body">
+          <div className="text-sm font-semibold text-slate-900">Vault not found</div>
+        </div>
       </div>
     )
   }
@@ -101,21 +103,50 @@ function CampaignBuilder() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <div className="text-xs font-medium text-slate-500">Vault</div>
-            <h1 className="mt-1 text-2xl font-semibold">{vault.name}</h1>
-            <div className="mt-2 text-sm text-slate-600">Create and manage versions of ad videos from this vault.</div>
+    <div className="page">
+      <div className="card">
+        <div className="card-body">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                <button type="button" onClick={() => navigate('/')} className="hover:text-slate-700">
+                  Vaults
+                </button>
+                <ChevronRight className="h-4 w-4" />
+                <button type="button" onClick={() => navigate(`/vault/${vault.id}`)} className="hover:text-slate-700">
+                  {vault.name}
+                </button>
+                <ChevronRight className="h-4 w-4" />
+                <span className="text-slate-700">Videos</span>
+              </div>
+              <h1 className="mt-2 text-2xl font-semibold text-slate-900">Video versions</h1>
+              <div className="subtitle">Create a version (idea + settings), then confirm generation.</div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                <span className={(vault.productImages || []).length ? 'badge-success' : 'badge-danger'}>
+                  {(vault.productImages || []).length ? `${vault.productImages.length} product images` : 'No product images'}
+                </span>
+                <span className={vault.logoUrl ? 'badge-success' : 'badge-slate'}>{vault.logoUrl ? 'Logo added' : 'Logo optional'}</span>
+                <span className="badge-slate">{vault.productCategory || '—'}</span>
+                <span className="badge-slate">{vault.productType || '—'}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => navigate(`/vault/${vault.id}`)} className="btn-secondary">
+                Vault assets
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById('new-version')
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }}
+                className="btn-primary"
+              >
+                New version
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => navigate(`/vault/${vault.id}`)}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            View vault assets
-          </button>
         </div>
       </div>
 
@@ -123,94 +154,115 @@ function CampaignBuilder() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+          <div className="card">
+            <div className="card-header">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-lg font-semibold">Video versions</div>
-              <div className="text-xs font-medium text-slate-500">{versions.length}</div>
+              <div>
+                <div className="text-sm font-semibold text-slate-900">All versions</div>
+                <div className="mt-1 text-sm text-slate-600">Open to edit anything. Generate is always confirmed.</div>
+              </div>
+              <div className="badge-slate">{versions.length} total</div>
             </div>
+            </div>
+            <div className="card-body">
 
             {versions.length === 0 ? (
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
-                No versions yet. Create one on the right.
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
+                No versions yet. Create one in the “New version” panel.
               </div>
             ) : (
-              <div className="mt-4 space-y-3">
-                {versions.map((v) => (
-                  <div key={v.id} className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-5">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-sm font-semibold">Version</div>
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-medium ${
-                            v.status === 'ready'
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : v.status === 'generating'
-                                ? 'bg-trae-100 text-trae-700'
-                                : v.status === 'failed'
-                                  ? 'bg-rose-50 text-rose-700'
-                                  : 'bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          {v.status}
-                        </span>
-                        <span className="text-xs text-slate-500">{new Date(v.createdAt).toLocaleString()}</span>
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+                <div className="divide-y divide-slate-200 bg-white">
+                  {versions.map((v) => (
+                    <div key={v.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="text-sm font-semibold text-slate-900">Version</div>
+                          <span
+                            className={
+                              v.status === 'ready'
+                                ? 'badge-success'
+                                : v.status === 'generating'
+                                  ? 'badge-brand'
+                                  : v.status === 'failed'
+                                    ? 'badge-danger'
+                                    : 'badge-slate'
+                            }
+                          >
+                            {v.status}
+                          </span>
+                          <span className="text-xs text-slate-500">{new Date(v.createdAt).toLocaleString()}</span>
+                        </div>
+                        <div className="mt-2 line-clamp-2 text-sm text-slate-700">{v.ideaText || '—'}</div>
                       </div>
-                      <div className="mt-2 line-clamp-2 text-sm text-slate-700">{v.ideaText || '—'}</div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveVaultId(vault.id)
-                          navigate(`/vault/${vault.id}/videos/${v.id}`)
-                        }}
-                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                      >
-                        Open
-                      </button>
-                      {v.status === 'generating' ? (
+
+                      <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => navigate(`/vault/${vault.id}/videos/${v.id}/generate`)}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-trae-600 px-3 py-2 text-sm font-medium text-white hover:bg-trae-700"
+                          onClick={() => {
+                            setActiveVaultId(vault.id)
+                            navigate(`/vault/${vault.id}/videos/${v.id}`)
+                          }}
+                          className="btn-secondary"
                         >
-                          <Play className="h-4 w-4" />
-                          View
+                          Open
                         </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => askGenerate(v.id)}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-trae-600 px-3 py-2 text-sm font-medium text-white hover:bg-trae-700"
-                        >
-                          {v.status === 'ready' ? <RefreshCw className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                          {v.status === 'ready' ? 'Regenerate' : 'Generate'}
-                        </button>
-                      )}
+                        {v.status === 'generating' ? (
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/vault/${vault.id}/videos/${v.id}/generate`)}
+                            className="btn-primary"
+                          >
+                            <Play className="h-4 w-4" />
+                            View job
+                          </button>
+                        ) : (
+                          <button type="button" onClick={() => askGenerate(v.id)} className="btn-primary">
+                            {v.status === 'ready' ? <RefreshCw className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                            {v.status === 'ready' ? 'Regenerate' : 'Generate'}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
+          </div>
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+          <div id="new-version" className="card lg:sticky lg:top-24">
+            <div className="card-header">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-lg font-semibold">New version</div>
+              <div>
+                <div className="text-sm font-semibold text-slate-900">New version</div>
+                <div className="mt-1 text-sm text-slate-600">Fast input. No polishing step.</div>
+              </div>
               <PlusCircle className="h-5 w-5 text-slate-500" />
             </div>
-            <div className="mt-2 text-sm text-slate-600">Add an idea (type or upload a file). Then generate.</div>
+            </div>
 
-            <div className="mt-5 space-y-4">
+            <div className="card-body space-y-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                Required: at least 1 product image in{' '}
+                <button
+                  type="button"
+                  onClick={() => navigate(`/vault/${vault.id}`)}
+                  className="font-medium text-trae-700 hover:underline"
+                >
+                  Vault assets
+                </button>
+                .
+              </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Campaign idea</label>
+                <label className="label">Campaign idea</label>
                 <textarea
                   value={ideaText}
                   onChange={(e) => setIdeaText(e.target.value)}
                   rows={5}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                  className="textarea"
                   placeholder="e.g., Soy milk launch promo: show pouring, creamy texture, highlight high protein, end with Shop Now."
                 />
               </div>
@@ -230,11 +282,11 @@ function CampaignBuilder() {
 
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">Duration</label>
+                  <label className="label">Duration</label>
                   <select
                     value={durationSec}
                     onChange={(e) => setDurationSec(Number(e.target.value))}
-                    className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                    className="select"
                   >
                     <option value={15}>15s</option>
                     <option value={20}>20s</option>
@@ -242,11 +294,11 @@ function CampaignBuilder() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">CTA</label>
+                  <label className="label">CTA</label>
                   <select
                     value={ctaText}
                     onChange={(e) => setCtaText(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                    className="select"
                   >
                     <option>Shop Now</option>
                     <option>Learn More</option>
@@ -259,9 +311,7 @@ function CampaignBuilder() {
                 type="button"
                 onClick={createVersion}
                 disabled={!canCreate}
-                className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white ${
-                  canCreate ? 'bg-trae-600 hover:bg-trae-700' : 'bg-slate-300 cursor-not-allowed'
-                }`}
+                className="btn-primary w-full"
               >
                 Create version
                 <ArrowRight className="h-4 w-4" />
@@ -273,26 +323,28 @@ function CampaignBuilder() {
 
       {confirm ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
-            <div className="text-lg font-semibold">Generate ad video?</div>
+          <div className="card w-full max-w-md">
+            <div className="card-body">
+            <div className="text-lg font-semibold">{confirm.mode === 'regenerate' ? 'Regenerate video?' : 'Generate video?'}</div>
             <div className="mt-2 text-sm text-slate-600">
-              Liquid will send the vault assets + idea to PixVerse V6 to generate a new video version.
+              This uses your vault assets (logo, palette, product images) plus the version idea. You can edit details in “Open”.
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setConfirm(null)}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="btn-secondary"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmGenerate}
-                className="rounded-lg bg-trae-600 px-4 py-2 text-sm font-medium text-white hover:bg-trae-700"
+                className="btn-primary"
               >
                 Confirm & start
               </button>
+            </div>
             </div>
           </div>
         </div>

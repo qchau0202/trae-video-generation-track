@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/useApp'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
-import { Download, RefreshCw } from 'lucide-react'
+import { ChevronRight, Download, RefreshCw } from 'lucide-react'
 
 function CampaignDetail() {
   const { vaultId, videoId } = useParams()
@@ -17,8 +17,10 @@ function CampaignDetail() {
 
   if (!vault || !video) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <div className="text-sm font-semibold">Video not found</div>
+      <div className="card">
+        <div className="card-body">
+          <div className="text-sm font-semibold text-slate-900">Video not found</div>
+        </div>
       </div>
     )
   }
@@ -84,38 +86,62 @@ function CampaignDetail() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Video version</h1>
-            <div className="mt-1 text-sm text-slate-600">
-              {video.generation?.model || 'PixVerse V6'} • {video.status} • Vault: {vault.name}
+    <div className="page">
+      <div className="card">
+        <div className="card-body">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                <button type="button" onClick={() => navigate('/')} className="hover:text-slate-700">
+                  Vaults
+                </button>
+                <ChevronRight className="h-4 w-4" />
+                <button type="button" onClick={() => navigate(`/vault/${vault.id}`)} className="hover:text-slate-700">
+                  {vault.name}
+                </button>
+                <ChevronRight className="h-4 w-4" />
+                <button type="button" onClick={() => navigate(`/vault/${vault.id}/videos`)} className="hover:text-slate-700">
+                  Videos
+                </button>
+                <ChevronRight className="h-4 w-4" />
+                <span className="text-slate-700">Version</span>
+              </div>
+              <h1 className="mt-2 text-2xl font-semibold text-slate-900">Version details</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                <span className="badge-brand">{video.generation?.model || 'PixVerse V6'}</span>
+                <span
+                  className={
+                    video.status === 'ready'
+                      ? 'badge-success'
+                      : video.status === 'generating'
+                        ? 'badge-brand'
+                        : video.status === 'failed'
+                          ? 'badge-danger'
+                          : 'badge-slate'
+                  }
+                >
+                  {video.status}
+                </span>
+                <span className="badge-slate">{video.generation?.durationSec || 30}s</span>
+                <span className="badge-slate">{video.generation?.aspectRatio || '9:16'}</span>
+              </div>
             </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate(`/vault/${vault.id}/videos`)}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Back to versions
-            </button>
-            <button
-              type="button"
-              onClick={handleExport}
-              className="inline-flex items-center gap-2 rounded-lg bg-trae-600 px-4 py-2 text-sm font-medium text-white hover:bg-trae-700"
-            >
-              <Download className="h-4 w-4" />
-              Export package
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" onClick={() => navigate(`/vault/${vault.id}/videos`)} className="btn-secondary">
+                Back to versions
+              </button>
+              <button type="button" onClick={handleExport} className="btn-primary">
+                <Download className="h-4 w-4" />
+                Export package
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="card lg:col-span-3">
           {asset?.url && video.status === 'ready' ? (
             <video src={asset.url} controls className="w-full aspect-[9/16] max-h-[75vh] bg-black object-cover" />
           ) : (
@@ -126,26 +152,29 @@ function CampaignDetail() {
         </div>
 
         <div className="lg:col-span-2 space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <div className="text-sm font-semibold">Settings</div>
-            <div className="mt-4 space-y-4">
+          <div className="card lg:sticky lg:top-24">
+            <div className="card-header">
+              <div className="text-sm font-semibold text-slate-900">Edit settings</div>
+              <div className="subtitle">Adjust anything. Prompt can be auto-reset from vault + idea.</div>
+            </div>
+            <div className="card-body space-y-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Campaign idea</label>
+                <label className="label">Campaign idea</label>
                 <textarea
-                    value={video.ideaText || ''}
-                    onChange={(e) => updateVideo(video.id, { ideaText: e.target.value })}
+                  value={video.ideaText || ''}
+                  onChange={(e) => updateVideo(video.id, { ideaText: e.target.value })}
                   rows={4}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                  className="textarea"
                 />
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">Duration</label>
+                  <label className="label">Duration</label>
                   <select
-                      value={video.generation?.durationSec || 30}
-                      onChange={(e) => updateVideo(video.id, { generation: { durationSec: Number(e.target.value) } })}
-                    className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                    value={video.generation?.durationSec || 30}
+                    onChange={(e) => updateVideo(video.id, { generation: { durationSec: Number(e.target.value) } })}
+                    className="select"
                   >
                     <option value={15}>15s</option>
                     <option value={20}>20s</option>
@@ -153,11 +182,11 @@ function CampaignDetail() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">CTA</label>
+                  <label className="label">CTA</label>
                   <select
-                      value={video.generation?.ctaText || 'Shop Now'}
-                      onChange={(e) => updateVideo(video.id, { generation: { ctaText: e.target.value } })}
-                    className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                    value={video.generation?.ctaText || 'Shop Now'}
+                    onChange={(e) => updateVideo(video.id, { generation: { ctaText: e.target.value } })}
+                    className="select"
                   >
                     <option>Shop Now</option>
                     <option>Learn More</option>
@@ -167,18 +196,18 @@ function CampaignDetail() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Prompt</label>
+                <label className="label">Prompt</label>
                 <textarea
-                    value={video.generation?.prompt || ''}
-                    onChange={(e) => updateVideo(video.id, { generation: { prompt: e.target.value } })}
+                  value={video.generation?.prompt || ''}
+                  onChange={(e) => updateVideo(video.id, { generation: { prompt: e.target.value } })}
                   rows={7}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                  className="textarea"
                 />
                 <div className="mt-2 flex justify-end">
                   <button
                     type="button"
                     onClick={resetPromptToAuto}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    className="btn-secondary"
                   >
                     <RefreshCw className="h-4 w-4" />
                     Reset to auto
@@ -187,32 +216,35 @@ function CampaignDetail() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Negative prompt (optional)</label>
+                <label className="label">Negative prompt (optional)</label>
                 <input
-                    value={video.generation?.negativePrompt || ''}
-                    onChange={(e) => updateVideo(video.id, { generation: { negativePrompt: e.target.value } })}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                  value={video.generation?.negativePrompt || ''}
+                  onChange={(e) => updateVideo(video.id, { generation: { negativePrompt: e.target.value } })}
+                  className="input"
                 />
               </div>
-            </div>
-          </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold">Actions</div>
-              <div className="text-xs font-medium text-slate-500">{(vault.productImages || []).length} vault images</div>
-            </div>
-            <div className="mt-4 grid gap-2">
-              <button
-                type="button"
-                disabled={!canGenerate}
-                onClick={() => requestGenerate(video.status === 'ready' ? 'regenerate' : 'generate')}
-                className={`rounded-lg px-4 py-2 text-sm font-medium text-white ${
-                  canGenerate ? 'bg-trae-600 hover:bg-trae-700' : 'bg-slate-300 cursor-not-allowed'
-                }`}
-              >
-                {video.status === 'ready' ? 'Regenerate video' : 'Generate video'}
-              </button>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                Uses vault assets: {(vault.productImages || []).length} product image(s) • Palette from logo/colors • Optional brand files.
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={!canGenerate}
+                  onClick={() => requestGenerate(video.status === 'ready' ? 'regenerate' : 'generate')}
+                  className="btn-primary w-full"
+                >
+                  {video.status === 'ready' ? 'Regenerate video' : 'Generate video'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/vault/${vault.id}/videos`)}
+                  className="btn-secondary w-full"
+                >
+                  Back to versions
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -220,26 +252,20 @@ function CampaignDetail() {
 
       {confirmOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
-            <div className="text-lg font-semibold">Confirm generation</div>
-            <div className="mt-2 text-sm text-slate-600">
-              This will generate a new ad video in PixVerse V6 using your vault assets and current settings.
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(false)}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={confirmGenerate}
-                className="rounded-lg bg-trae-600 px-4 py-2 text-sm font-medium text-white hover:bg-trae-700"
-              >
-                Confirm & start
-              </button>
+          <div className="card w-full max-w-md">
+            <div className="card-body">
+              <div className="text-lg font-semibold text-slate-900">Confirm generation</div>
+              <div className="mt-2 text-sm text-slate-600">
+                This will generate an ad video in PixVerse V6 using your vault assets and current settings.
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button type="button" onClick={() => setConfirmOpen(false)} className="btn-secondary">
+                  Cancel
+                </button>
+                <button type="button" onClick={confirmGenerate} className="btn-primary">
+                  Confirm & start
+                </button>
+              </div>
             </div>
           </div>
         </div>

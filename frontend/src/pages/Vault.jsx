@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/useApp'
 import Dropzone from '../components/Dropzone'
-import { ArrowRight, FolderPlus, ImagePlus, X } from 'lucide-react'
+import { ArrowRight, ChevronRight, FolderPlus, ImagePlus, X } from 'lucide-react'
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -203,97 +203,114 @@ function Vault() {
 
   if (isCreate) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Create Vault</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Create a vault first. You’ll upload assets and generate ad video versions inside it.
-          </p>
-        </div>
-
-        <form onSubmit={onCreate} className="rounded-2xl border border-slate-200 bg-white p-6">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-trae-100 text-trae-700">
-              <FolderPlus className="h-6 w-6" />
-            </div>
-            <div className="flex-1 space-y-4">
+      <div className="page">
+        <div className="card">
+          <div className="card-header">
+            <h1 className="title">Create vault</h1>
+            <div className="subtitle">Name + description only. Upload assets and generate versions inside it.</div>
+          </div>
+          <div className="card-body">
+            <form onSubmit={onCreate} className="space-y-4">
               {error ? (
                 <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                   {error}
                 </div>
               ) : null}
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-trae-100 text-trae-700">
+                  <FolderPlus className="h-5 w-5" />
+                </div>
+                <div className="text-sm text-slate-700">
+                  Quick demo setup. Default category is F&amp;B, product type is soy milk drinks (editable later).
+                </div>
+              </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Vault name</label>
+                <label className="label">Vault name</label>
                 <input
                   value={createForm.name}
                   onChange={(e) => setCreateForm((p) => ({ ...p, name: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                  className="input"
                   placeholder="e.g., SoyJoy Milk"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Description</label>
+                <label className="label">Description</label>
                 <textarea
                   value={createForm.description}
                   onChange={(e) => setCreateForm((p) => ({ ...p, description: e.target.value }))}
                   rows={3}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                  className="textarea"
                   placeholder="Optional notes for your brand"
                 />
               </div>
               <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="rounded-lg bg-trae-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-trae-700"
-                >
-                  Create Vault
+                <button type="submit" className="btn-primary">
+                  Create vault
                 </button>
               </div>
-            </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     )
   }
 
   if (!vault) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <div className="text-sm font-semibold">Vault not found</div>
+      <div className="card">
+        <div className="card-body">
+          <div className="text-sm font-semibold text-slate-900">Vault not found</div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">{vault.name}</h1>
-            <div className="mt-1 text-sm text-slate-600">{vault.description || 'No description'}</div>
+    <div className="page">
+      <div className="card">
+        <div className="card-body">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                <button type="button" onClick={() => navigate('/')} className="hover:text-slate-700">
+                  Vaults
+                </button>
+                <ChevronRight className="h-4 w-4" />
+                <span className="text-slate-700">{vault.name}</span>
+              </div>
+              <h1 className="mt-2 text-2xl font-semibold text-slate-900">{vault.name}</h1>
+              <div className="subtitle">{vault.description || 'No description'}</div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => navigate('/')} className="btn-secondary">
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveVaultId(vault.id)
+                  navigate(`/vault/${vault.id}/videos`)
+                }}
+                className="btn-primary"
+              >
+                Open video studio
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveVaultId(vault.id)
-              navigate(`/vault/${vault.id}/videos`)
-            }}
-            className="inline-flex items-center gap-2 rounded-lg bg-trae-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-trae-700"
-          >
-            Go to videos
-            <ArrowRight className="h-4 w-4" />
-          </button>
         </div>
       </div>
 
-      {error ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
-      ) : null}
+      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <div className="text-lg font-semibold">Assets</div>
+          <div className="card">
+            <div className="card-header">
+              <div className="text-sm font-semibold text-slate-900">Step 1 — Assets</div>
+              <div className="subtitle">Upload logo + product images. Logo auto-extracts a palette (editable).</div>
+            </div>
+            <div className="card-body">
             <div className="mt-4 grid gap-6 md:grid-cols-2">
               <div>
                 {vault.logoUrl ? (
@@ -355,11 +372,11 @@ function Vault() {
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Category</label>
+                <label className="label">Category</label>
                 <select
                   value={vault.productCategory || 'F&B'}
                   onChange={(e) => updateVault(vault.id, { productCategory: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                  className="select"
                 >
                   <option>F&B</option>
                   <option>Beauty</option>
@@ -369,23 +386,24 @@ function Vault() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Product type</label>
+                <label className="label">Product type</label>
                 <input
                   value={vault.productType || ''}
                   onChange={(e) => updateVault(vault.id, { productType: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                  className="input"
                   placeholder="Soy milk drinks"
                 />
               </div>
             </div>
           </div>
+          </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-lg font-semibold">Brand files (optional)</div>
-              <div className="text-xs font-medium text-slate-500">Up to 3</div>
+          <div className="card">
+            <div className="card-header">
+              <div className="text-sm font-semibold text-slate-900">Optional: brand files</div>
+              <div className="subtitle">Upload .txt/.doc style content. We try to extract text.</div>
             </div>
-            <div className="mt-4">
+            <div className="card-body">
               <Dropzone
                 label=""
                 hint="Upload .txt or any text-like file"
@@ -393,7 +411,6 @@ function Vault() {
                 multiple
                 onFiles={handleBrandDocs}
               />
-            </div>
             {(vault.brandDocs || []).length ? (
               <div className="mt-4 space-y-2">
                 {vault.brandDocs.map((d) => (
@@ -417,13 +434,17 @@ function Vault() {
                 Optional: upload brand guidelines, messaging, or product notes. Liquid will reference them when generating prompts.
               </div>
             )}
+            </div>
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <div className="text-lg font-semibold">Color palette</div>
-            <div className="mt-4 space-y-3">
+          <div className="card lg:sticky lg:top-24">
+            <div className="card-header">
+              <div className="text-sm font-semibold text-slate-900">Palette</div>
+              <div className="subtitle">Auto-extracted from logo, editable.</div>
+            </div>
+            <div className="card-body space-y-3">
               {[
                 { key: 'primary', label: 'Primary' },
                 { key: 'secondary', label: 'Secondary' },
@@ -440,33 +461,32 @@ function Vault() {
                   <input
                     value={palette[item.key] || ''}
                     onChange={(e) => updateVault(vault.id, { colors: { ...palette, [item.key]: e.target.value } })}
-                    className="flex-1 rounded-lg border border-slate-200 px-4 py-2 font-mono text-sm focus:border-transparent focus:ring-2 focus:ring-trae-600"
+                    className="input flex-1 font-mono"
                     placeholder="#HEX"
                   />
                 </div>
               ))}
-            </div>
-            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded-full px-3 py-1 text-sm font-medium text-white" style={{ background: palette.primary }}>
-                  Primary
-                </span>
-                <span className="rounded-full px-3 py-1 text-sm font-medium text-white" style={{ background: palette.secondary }}>
-                  Secondary
-                </span>
-                <span className="rounded-full px-3 py-1 text-sm font-medium text-white" style={{ background: palette.accent }}>
-                  Accent
-                </span>
+              <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full px-3 py-1 text-sm font-medium text-white" style={{ background: palette.primary }}>
+                    Primary
+                  </span>
+                  <span className="rounded-full px-3 py-1 text-sm font-medium text-white" style={{ background: palette.secondary }}>
+                    Secondary
+                  </span>
+                  <span className="rounded-full px-3 py-1 text-sm font-medium text-white" style={{ background: palette.accent }}>
+                    Accent
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="divider my-5" />
             <div className="flex items-center justify-between gap-3">
-              <div className="text-lg font-semibold">Next</div>
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Step 2 — Versions</div>
+                <div className="mt-1 text-sm text-slate-600">Create versions and confirm generation.</div>
+              </div>
               <ImagePlus className="h-5 w-5 text-slate-500" />
             </div>
-            <div className="mt-2 text-sm text-slate-600">Create video versions from this vault.</div>
             <div className="mt-4">
               <button
                 type="button"
@@ -474,12 +494,14 @@ function Vault() {
                   setActiveVaultId(vault.id)
                   navigate(`/vault/${vault.id}/videos`)
                 }}
-                className="w-full rounded-lg bg-trae-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-trae-700"
+                className="btn-primary w-full"
               >
                 Open video studio
               </button>
             </div>
           </div>
+          </div>
+
         </div>
       </div>
     </div>

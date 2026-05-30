@@ -21,7 +21,7 @@ function AppShell() {
               </div>
               {activeVault?.name ? (
                 <div className="hidden md:block">
-                  <span className="badge-brand">Active: {activeVault.name}</span>
+                  <span className="text-xs text-slate-500">Active vault: {activeVault.name}</span>
                 </div>
               ) : null}
             </div>

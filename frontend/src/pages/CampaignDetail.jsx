@@ -107,23 +107,9 @@ function CampaignDetail() {
                 <span className="text-slate-700">Version</span>
               </div>
               <h1 className="mt-2 text-2xl font-semibold text-slate-900">Version details</h1>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                <span className="badge-brand">{video.generation?.model || 'PixVerse V6'}</span>
-                <span
-                  className={
-                    video.status === 'ready'
-                      ? 'badge-success'
-                      : video.status === 'generating'
-                        ? 'badge-brand'
-                        : video.status === 'failed'
-                          ? 'badge-danger'
-                          : 'badge-slate'
-                  }
-                >
-                  {video.status}
-                </span>
-                <span className="badge-slate">{video.generation?.durationSec || 30}s</span>
-                <span className="badge-slate">{video.generation?.aspectRatio || '9:16'}</span>
+              <div className="mt-2 text-xs text-slate-500">
+                {video.generation?.model || 'PixVerse V6'} • Status: {video.status} • {video.generation?.durationSec || 30}s •{' '}
+                {video.generation?.aspectRatio || '9:16'}
               </div>
             </div>
 
@@ -143,7 +129,7 @@ function CampaignDetail() {
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="card lg:col-span-3">
           {asset?.url && video.status === 'ready' ? (
-            <video src={asset.url} controls className="w-full aspect-[9/16] max-h-[75vh] bg-black object-cover" />
+            <video src={asset.url} controls className="w-full aspect-[9/16] max-h-[75vh] bg-black object-contain" />
           ) : (
             <div className="flex aspect-[9/16] w-full items-center justify-center bg-slate-100 text-slate-600">
               {video.status === 'generating' ? 'Rendering…' : 'No video yet'}
@@ -171,15 +157,10 @@ function CampaignDetail() {
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
                   <label className="label">Duration</label>
-                  <select
-                    value={video.generation?.durationSec || 30}
-                    onChange={(e) => updateVideo(video.id, { generation: { durationSec: Number(e.target.value) } })}
-                    className="select"
-                  >
-                    <option value={15}>15s</option>
-                    <option value={20}>20s</option>
-                    <option value={30}>30s</option>
-                  </select>
+                  <div className="input flex items-center justify-between">
+                    <span>30s</span>
+                    <span className="text-xs text-slate-500">6 shots</span>
+                  </div>
                 </div>
                 <div>
                   <label className="label">CTA</label>

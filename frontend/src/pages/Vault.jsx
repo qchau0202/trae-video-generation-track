@@ -278,7 +278,18 @@ function Vault() {
                 <ChevronRight className="h-4 w-4" />
                 <span className="text-slate-700">{vault.name}</span>
               </div>
-              <h1 className="mt-2 text-2xl font-semibold text-slate-900">{vault.name}</h1>
+              <div className="mt-2 flex items-center gap-3">
+                <div className="h-11 w-11 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  {vault.logoUrl ? (
+                    <img src={vault.logoUrl} alt={`${vault.name} logo`} className="h-full w-full object-contain" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500">
+                      {(vault.name || 'V').slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <h1 className="text-2xl font-semibold text-slate-900">{vault.name}</h1>
+              </div>
               <div className="subtitle">{vault.description || 'No description'}</div>
             </div>
             <div className="flex flex-wrap gap-2">

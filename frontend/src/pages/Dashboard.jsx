@@ -12,11 +12,11 @@ function Dashboard() {
         <div className="card-body">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-trae-100 px-4 py-2 text-sm font-medium text-trae-700">
+              <div className="flex items-center gap-2 text-sm font-medium text-trae-700">
                 <Zap className="h-4 w-4" />
-                Quick MVP demo
+                Liquid
               </div>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight">Brand Vaults</h1>
+              <h1 className="mt-3 text-3xl font-semibold tracking-tight">Brand Vaults</h1>
               <p className="mt-2 text-sm text-slate-600">
                 Pick a vault, upload assets, then generate ad video versions.
               </p>
@@ -56,16 +56,24 @@ function Dashboard() {
                 className="card text-left hover:bg-slate-50"
               >
                 <div className="card-body">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
+                  <div className="flex items-start gap-4">
+                    <div className="h-12 w-12 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                      {v.logoUrl ? (
+                        <img src={v.logoUrl} alt={`${v.name || 'Vault'} logo`} className="h-full w-full object-contain" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-slate-50 text-sm font-semibold text-slate-500">
+                          {(v.name || 'V').slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
                       <div className="truncate text-lg font-semibold text-slate-900">{v.name || 'Untitled vault'}</div>
                       <div className="mt-1 line-clamp-2 text-sm text-slate-600">{v.description || 'No description'}</div>
+                      <div className="mt-3 text-xs text-slate-500">
+                        {(v.productImages || []).length} images • {v.productCategory || '—'} • {v.productType || '—'}
+                      </div>
                     </div>
-                    <div className="badge-slate">{v.productCategory || '—'}</div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                    <span className="badge-slate">{(v.productImages || []).length} images</span>
-                    <span className="badge-slate">{v.productType || '—'}</span>
                   </div>
                 </div>
               </button>

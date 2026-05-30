@@ -1,16 +1,22 @@
-# TRAE x PixVerse Video Generation Project
+# TRAE x PixVerse Video Generation Project (Liquid)
 
-This project is a Marketing/E-commerce web application built for the TRAE x PixVerse Video Generation Track. It features an interactive video shopping experience powered by PixVerse AI-generated videos.
+This project is a Marketing/E-commerce web application built for the TRAE x PixVerse Video Generation Track.
+
+Liquid is a “guardrailed ad creative appliance” for merchants:
+- Save brand rules once (Brand Vault)
+- Pick a conversion framework (Hook Splitter / Mega Sale / Feature–Benefit)
+- Provide product assets + offer
+- Generate 30s+ campaign videos via PixVerse
+- Compare variants, collect votes/comments, and export a bundle (9:16 + 1:1)
 
 ## Core Features
 
-- **Interactive PixVerse Video**: Minimum 30s AI-generated video with interactive hotspots.
-- **PixVerse Skills Integration**: Leveraging core capabilities from the `BE/` directory for advanced video production and post-processing.
-- **In-Video Purchase Triggers**: Direct links to product pages from within the video.
-- **User Engagement Analytics**: Real-time tracking of user interactions with video elements.
-- **Multi-Environment Setup**: Dedicated configurations for Development, Staging, and Production.
-- **Cloudinary Integration**: Managed storage for product images and media.
-- **Google Drive Integration**: Secure file management and backup for e-commerce workflows.
+- **Brand Vault (CRUD)**: Brand profiles (logo/colors/style) reused across campaigns
+- **Conversion Frameworks**: System templates are auto-seeded on server start
+- **Campaign Generator**: Async PixVerse job pipeline (submit → status → assets)
+- **Beyond playback**: Variant compare, feedback (vote/comment), share links, export bundles
+- **Multi-format output**: 9:16 and 1:1
+- **RBAC**: Workspace membership roles (owner/admin/member/viewer)
 
 ## Getting Started
 1. Navigate to the frontend directory:

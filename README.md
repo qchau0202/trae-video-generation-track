@@ -1,31 +1,33 @@
-# TRAE x PixVerse Video Generation Project
+# TRAE x PixVerse Video Generation Project (Liquid)
 
-This project is a Marketing/E-commerce web application built for the TRAE x PixVerse Video Generation Track. It features an interactive video shopping experience powered by PixVerse AI-generated videos.
+This project is a Marketing/E-commerce web application built for the TRAE x PixVerse Video Generation Track.
+
+Liquid is a “guardrailed ad creative appliance” for merchants:
+- Save brand rules once (Brand Vault)
+- Pick a conversion framework (Hook Splitter / Mega Sale / Feature–Benefit)
+- Provide product assets + offer
+- Generate 30s+ campaign videos via PixVerse
+- Compare variants, collect votes/comments, and export a bundle (9:16 + 1:1)
 
 ## Project Structure
 
 ```text
 trae-video-generation-track/
-├── BE/                     # PixVerse Core Services & Skills
-│   └── pixverse-service/
-│       └── pixverse-skills/
-│           ├── skills/     # AI Capabilities & Workflows
-│           └── README.md   # PixVerse integration guide
-├── backend/                # Express.js Backend (Custom API)
-│   ├── src/
-│   │   ├── configs/       # DB and service configurations
-│   │   ├── middleware/    # Error handling & Security
-│   │   ├── services/      # Cloudinary & Google Drive integrations
-│   │   ├── app.js         # Express configuration
-│   │   └── server.js      # Entry point
-│   ├── .env.development
-│   ├── .env.staging
-│   └── .env.production
+├── backend/
+│   ├── liquid-service/     # Express.js + MongoDB API for Liquid
+│   │   └── src/
+│   │       ├── controllers/
+│   │       ├── middleware/
+│   │       ├── models/
+│   │       ├── routes/
+│   │       └── services/
+│   └── pixverse-service/   # PixVerse skills reference (track materials)
 ├── frontend/               # React (Vite) Frontend
 │   ├── src/
-│   │   ├── components/    # PixVerse Interactive Video component
-│   │   ├── App.jsx        # Marketing landing page
-│   │   └── index.css      # Tailwind CSS entry
+│   │   ├── api/
+│   │   ├── components/
+│   │   ├── lib/
+│   │   └── pages/
 │   ├── .env.development
 │   ├── .env.staging
 │   └── .env.production
@@ -34,20 +36,17 @@ trae-video-generation-track/
 
 ## Core Features
 
-- **Interactive PixVerse Video**: Minimum 30s AI-generated video with interactive hotspots.
-- **PixVerse Skills Integration**: Leveraging core capabilities from the `BE/` directory for advanced video production and post-processing.
-- **In-Video Purchase Triggers**: Direct links to product pages from within the video.
-- **User Engagement Analytics**: Real-time tracking of user interactions with video elements.
-- **Multi-Environment Setup**: Dedicated configurations for Development, Staging, and Production.
-- **Cloudinary Integration**: Managed storage for product images and media.
-- **Google Drive Integration**: Secure file management and backup for e-commerce workflows.
+- **Brand Vault (CRUD)**: Brand profiles (logo/colors/style) reused across campaigns
+- **Conversion Frameworks**: System templates are auto-seeded on server start
+- **Campaign Generator**: Async PixVerse job pipeline (submit → status → assets)
+- **Beyond playback**: Variant compare, feedback (vote/comment), share links, export bundles
+- **Multi-format output**: 9:16 and 1:1
+- **RBAC**: Workspace membership roles (owner/admin/member/viewer)
 
 ## Prerequisites
 
 - Node.js (v18 or higher)
 - MongoDB (Local or Atlas)
-- Cloudinary Account
-- Google Cloud Project (for Drive API)
 
 ## Getting Started
 
@@ -55,7 +54,7 @@ trae-video-generation-track/
 
 1. Navigate to the backend directory:
    ```bash
-   cd backend
+   cd backend/liquid-service
    ```
 2. Install dependencies:
    ```bash
@@ -63,8 +62,9 @@ trae-video-generation-track/
    ```
 3. Configure environment variables in `.env.development`:
    - `MONGODB_URI`: Your MongoDB connection string.
-   - `CLOUDINARY_*`: Your Cloudinary credentials.
-   - `GOOGLE_DRIVE_*`: Your Google Drive API credentials.
+   - `PIXVERSE_MOCK`: Set to `true` to run without PixVerse credentials (default behavior if no API key is set)
+   - `PIXVERSE_API_KEY`: PixVerse API key (if using real PixVerse endpoint)
+   - `PIXVERSE_API_BASE_URL`: PixVerse API base URL (if using real PixVerse endpoint)
 4. Start the development server:
    ```bash
    npm run dev
@@ -100,14 +100,14 @@ The optimized bundle will be in `frontend/dist`.
 
 **Backend:**
 ```bash
-cd backend
-npm run start
+cd backend/liquid-service
+npm start
 ```
-This runs the server using `.env.production` configurations.
+This runs the server using `.env.production` configurations (if present).
 
 ## Security & Best Practices
 
-- **CORS**: Configured in the Express backend to allow specific origins.
+- **CORS**: Enabled on the API server.
 - **Security Middleware**: `helmet` is implemented for basic security headers.
 - **Error Handling**: Standardized error response structure across all API endpoints.
 - **Environment Isolation**: Sensitive credentials are never hardcoded and vary by environment.

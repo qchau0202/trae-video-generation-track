@@ -20,7 +20,7 @@ function Dropzone({
         ? 'border-trae-600 bg-trae-50'
         : 'border-slate-200 bg-white hover:bg-slate-50'
 
-    return `flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors ${stateClass} ${className}`
+    return `flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-trae-600 focus:ring-offset-2 ${stateClass} ${className}`
   }, [disabled, isDragging, className])
 
   const openPicker = () => {
@@ -56,7 +56,7 @@ function Dropzone({
 
   return (
     <div>
-      {label ? <div className="mb-2 text-sm font-medium text-slate-700">{label}</div> : null}
+      {label ? <div className="label">{label}</div> : null}
       <button
         type="button"
         onClick={openPicker}
@@ -69,7 +69,7 @@ function Dropzone({
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-trae-100 text-trae-700">
           <Upload className="h-6 w-6" />
         </div>
-        <div className="text-sm font-medium text-slate-900">Drag & drop or click to upload</div>
+        <div className="text-sm font-medium text-slate-900">Drag &amp; drop or click to upload</div>
         {hint ? <div className="text-xs text-slate-500">{hint}</div> : null}
       </button>
       <input

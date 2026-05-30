@@ -12,7 +12,6 @@ function CampaignBuilder() {
 
   const [ideaText, setIdeaText] = useState('')
   const [ideaAttachment, setIdeaAttachment] = useState(null)
-  const [durationSec, setDurationSec] = useState(30)
   const [ctaText, setCtaText] = useState('Shop Now')
   const [error, setError] = useState('')
   const [confirm, setConfirm] = useState(null)
@@ -82,7 +81,7 @@ function CampaignBuilder() {
     const created = createVideoVersion(vault.id, {
       ideaText,
       ideaAttachment,
-      generation: { durationSec, ctaText },
+      generation: { durationSec: 30, ctaText },
     })
     setActiveVaultId(vault.id)
     navigate(`/vault/${vault.id}/videos/${created.id}`)
@@ -120,14 +119,10 @@ function CampaignBuilder() {
                 <span className="text-slate-700">Videos</span>
               </div>
               <h1 className="mt-2 text-2xl font-semibold text-slate-900">Video versions</h1>
-              <div className="subtitle">Create a version (idea + settings), then confirm generation.</div>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                <span className={(vault.productImages || []).length ? 'badge-success' : 'badge-danger'}>
-                  {(vault.productImages || []).length ? `${vault.productImages.length} product images` : 'No product images'}
-                </span>
-                <span className={vault.logoUrl ? 'badge-success' : 'badge-slate'}>{vault.logoUrl ? 'Logo added' : 'Logo optional'}</span>
-                <span className="badge-slate">{vault.productCategory || '—'}</span>
-                <span className="badge-slate">{vault.productType || '—'}</span>
+              <div className="subtitle">30s campaign video (6 shots). Create a version, then confirm generation.</div>
+              <div className="mt-3 text-xs text-slate-500">
+                {(vault.productImages || []).length} product images • {vault.logoUrl ? 'Logo added' : 'No logo'} • PixVerse V6 • 30s •{' '}
+                {vault.productCategory || '—'} • {vault.productType || '—'}
               </div>
             </div>
 
@@ -161,7 +156,7 @@ function CampaignBuilder() {
                 <div className="text-sm font-semibold text-slate-900">All versions</div>
                 <div className="mt-1 text-sm text-slate-600">Open to edit anything. Generate is always confirmed.</div>
               </div>
-              <div className="badge-slate">{versions.length} total</div>
+              <div className="text-xs text-slate-500">{versions.length} total</div>
             </div>
             </div>
             <div className="card-body">
@@ -179,15 +174,15 @@ function CampaignBuilder() {
                         <div className="flex flex-wrap items-center gap-2">
                           <div className="text-sm font-semibold text-slate-900">Version</div>
                           <span
-                            className={
+                            className={`text-xs font-medium ${
                               v.status === 'ready'
-                                ? 'badge-success'
+                                ? 'text-emerald-700'
                                 : v.status === 'generating'
-                                  ? 'badge-brand'
+                                  ? 'text-trae-700'
                                   : v.status === 'failed'
-                                    ? 'badge-danger'
-                                    : 'badge-slate'
-                            }
+                                    ? 'text-rose-700'
+                                    : 'text-slate-500'
+                            }`}
                           >
                             {v.status}
                           </span>
@@ -283,23 +278,14 @@ function CampaignBuilder() {
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
                   <label className="label">Duration</label>
-                  <select
-                    value={durationSec}
-                    onChange={(e) => setDurationSec(Number(e.target.value))}
-                    className="select"
-                  >
-                    <option value={15}>15s</option>
-                    <option value={20}>20s</option>
-                    <option value={30}>30s</option>
-                  </select>
+                  <div className="input flex items-center justify-between">
+                    <span>30s</span>
+                    <span className="text-xs text-slate-500">6 shots</span>
+                  </div>
                 </div>
                 <div>
                   <label className="label">CTA</label>
-                  <select
-                    value={ctaText}
-                    onChange={(e) => setCtaText(e.target.value)}
-                    className="select"
-                  >
+                  <select value={ctaText} onChange={(e) => setCtaText(e.target.value)} className="select">
                     <option>Shop Now</option>
                     <option>Learn More</option>
                     <option>Get Offer</option>

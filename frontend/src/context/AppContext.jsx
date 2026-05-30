@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LiquidContext } from './liquidContext'
 
 const STORAGE_KEYS = {
@@ -65,7 +65,7 @@ function buildAutoPrompt({ vault, video }) {
   const cta = video?.generation?.ctaText ? `CTA: ${video.generation.ctaText}.` : ''
   const pieces = [
     `Create a ${duration}s ${aspectRatio} performance ad video optimized for paid social.`,
-    'Structure: hook (0–2s) → product showcase → benefit/proof → offer → CTA.',
+    'Structure: 6 shots (hook → product → benefit → proof → offer → CTA).',
     category,
     productType,
     idea ? `Idea: ${idea}` : '',
@@ -79,7 +79,25 @@ function buildAutoPrompt({ vault, video }) {
   return pieces.join(' ')
 }
 
+function resolveVideoUrl(rawUrl, endpointBase) {
+  const url = String(rawUrl || '')
+  if (!url) return null
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (!endpointBase) return url
+  const base = String(endpointBase).replace(/\/$/, '')
+  try {
+    const parsed = new URL(base)
+    const origin = parsed.origin
+    return `${origin}${url.startsWith('/') ? url : `/${url}`}`
+  } catch {
+    return url
+  }
+}
+
 export function AppProvider({ children }) {
+  const pixVerseEndpoint =
+    typeof import.meta !== 'undefined' ? import.meta.env?.VITE_PIXVERSE_V6_ENDPOINT || '' : ''
+
   const [vaults, setVaults] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.VAULTS)
     if (saved) return JSON.parse(saved)
@@ -130,7 +148,20 @@ export function AppProvider({ children }) {
 
   const [videos, setVideos] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.VIDEOS)
-    if (saved) return JSON.parse(saved)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      if (!Array.isArray(parsed)) return []
+      return parsed.map((v) => ({
+        ...v,
+        generation: {
+          ...(v.generation || {}),
+          model: v.generation?.model || 'PixVerse V6',
+          modelId: v.generation?.modelId || 'pixverse-v6',
+          aspectRatio: v.generation?.aspectRatio || '9:16',
+          durationSec: 30,
+        },
+      }))
+    }
 
     const legacyCampaigns = localStorage.getItem(STORAGE_KEYS.LEGACY_CAMPAIGNS)
     if (!legacyCampaigns) return []
@@ -161,6 +192,11 @@ export function AppProvider({ children }) {
     }
   })
 
+  const videosRef = useRef(videos)
+  useEffect(() => {
+    videosRef.current = videos
+  }, [videos])
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.VAULTS, JSON.stringify(vaults))
   }, [vaults])
@@ -180,6 +216,7 @@ export function AppProvider({ children }) {
         let changed = false
         const next = prev.map((v) => {
           if (v.status !== 'generating') return v
+          if (pixVerseEndpoint) return v
           const startedAt = v.job?.startedAt || 0
           const etaMs = v.job?.etaMs || 0
           if (!startedAt || !etaMs) return v
@@ -199,7 +236,78 @@ export function AppProvider({ children }) {
     }, 900)
 
     return () => clearInterval(intervalId)
-  }, [])
+  }, [pixVerseEndpoint])
+
+  useEffect(() => {
+    if (!pixVerseEndpoint) return
+    const intervalId = setInterval(() => {
+      const current = videosRef.current || []
+      const targets = current.filter((v) => v.status === 'generating' && v.job?.remote?.jobId)
+      if (targets.length === 0) return
+      for (const v of targets.slice(0, 3)) {
+        const statusUrl = `${pixVerseEndpoint.replace(/\/$/, '')}/status/${encodeURIComponent(v.job.remote.jobId)}`
+        fetch(statusUrl)
+          .then(async (res) => {
+            if (!res.ok) throw new Error(`Status HTTP ${res.status}`)
+            return res.json()
+          })
+          .then((data) => {
+            const videoUrl = data?.url || null
+            const status = data?.status
+            if (status === 1 && videoUrl) {
+              const resolvedUrl = resolveVideoUrl(videoUrl, pixVerseEndpoint)
+              setVideos((prev) =>
+                prev.map((x) =>
+                  x.id === v.id
+                    ? {
+                        ...x,
+                        status: 'ready',
+                        updatedAt: nowIso(),
+                        job: {
+                          ...(x.job || {}),
+                          status: 'done',
+                          finishedAt: nowIso(),
+                          remote: { ...(x.job?.remote || {}), videoUrl: resolvedUrl, raw: data?.raw || null },
+                        },
+                        videoAssets: [
+                          {
+                            id: generateId(),
+                            format: x.generation?.aspectRatio || '9:16',
+                            durationSec: x.generation?.durationSec || 30,
+                            url: resolvedUrl,
+                            captionsBurned: false,
+                          },
+                        ],
+                      }
+                    : x
+                )
+              )
+            } else if (status === 8 || status === 7) {
+              setVideos((prev) =>
+                prev.map((x) =>
+                  x.id === v.id ? { ...x, status: 'failed', updatedAt: nowIso(), job: { ...(x.job || {}), status: 'failed' } } : x
+                )
+              )
+            } else {
+              setVideos((prev) =>
+                prev.map((x) =>
+                  x.id === v.id ? { ...x, job: { ...(x.job || {}), remote: { ...(x.job?.remote || {}), raw: data?.raw || null } } } : x
+                )
+              )
+            }
+          })
+          .catch((err) => {
+            setVideos((prev) =>
+              prev.map((x) =>
+                x.id === v.id ? { ...x, job: { ...(x.job || {}), error: String(err?.message || 'Status check failed') } } : x
+              )
+            )
+          })
+      }
+    }, 3500)
+
+    return () => clearInterval(intervalId)
+  }, [pixVerseEndpoint])
 
   const createVault = ({ name, description }) => {
     const vault = {
@@ -234,6 +342,7 @@ export function AppProvider({ children }) {
     const vault = vaults.find((v) => v.id === vaultId) || null
     const generation = {
       model: 'PixVerse V6',
+      modelId: 'pixverse-v6',
       aspectRatio: payload?.generation?.aspectRatio || '9:16',
       durationSec: Number.isFinite(payload?.generation?.durationSec) ? payload.generation.durationSec : 30,
       ctaText: clampText(payload?.generation?.ctaText || 'Shop Now', 40),
@@ -265,7 +374,9 @@ export function AppProvider({ children }) {
         const next = {
           ...v,
           ...updates,
-          generation: updates.generation ? { ...v.generation, ...updates.generation } : v.generation,
+          generation: updates.generation
+            ? { ...v.generation, ...updates.generation, durationSec: 30 }
+            : { ...v.generation, durationSec: 30 },
           updatedAt: nowIso(),
         }
         return next
@@ -287,34 +398,87 @@ export function AppProvider({ children }) {
   }
 
   const startVideoGeneration = (videoId) => {
-    setVideos((prev) =>
-      prev.map((v) => {
-        if (v.id !== videoId) return v
-        const etaMs = 5200
-        return {
-          ...v,
-          status: 'generating',
-          updatedAt: nowIso(),
-          job: { status: 'processing', startedAt: Date.now(), etaMs },
-        }
-      })
-    )
-  }
+    const startedAt = Date.now()
+    const etaMs = 5200
+    const snapshot = videos.find((v) => v.id === videoId) || null
+    const vault = snapshot ? vaults.find((x) => x.id === snapshot.vaultId) || null : null
+    const durationSec = 30
+    const prompt =
+      snapshot?.generation?.prompt && String(snapshot.generation.prompt).trim()
+        ? snapshot.generation.prompt
+        : buildAutoPrompt({ vault, video: snapshot })
 
-  const regenerateVideo = (videoId) => {
     setVideos((prev) =>
       prev.map((v) => {
         if (v.id !== videoId) return v
-        const etaMs = 5200
         return {
           ...v,
           status: 'generating',
           updatedAt: nowIso(),
-          job: { status: 'processing', startedAt: Date.now(), etaMs },
+          generation: {
+            ...v.generation,
+            model: v.generation?.model || 'PixVerse V6',
+            modelId: v.generation?.modelId || 'pixverse-v6',
+            prompt,
+            durationSec,
+          },
+          job: {
+            status: 'processing',
+            startedAt,
+            etaMs,
+            remote: pixVerseEndpoint ? { endpoint: pixVerseEndpoint } : null,
+            error: null,
+          },
           videoAssets: [],
         }
       })
     )
+
+    if (!pixVerseEndpoint || !snapshot) return
+
+    const payload = {
+      prompt,
+      negativePrompt: snapshot.generation?.negativePrompt || '',
+      aspectRatio: (snapshot.generation?.aspectRatio || '9:16').replace(':', ':'),
+      durationSec,
+      quality: '720p',
+      generateAudio: false,
+      imageDataUrl: vault?.productImages?.[0] || null,
+    }
+
+    const url = `${pixVerseEndpoint.replace(/\/$/, '')}/generate`
+    fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`PixVerse request failed (${res.status})`)
+        return res.json()
+      })
+      .then((data) => {
+        const jobId = data?.videoId ?? null
+        if (jobId === null || jobId === undefined) throw new Error('PixVerse did not return videoId')
+        setVideos((prev) =>
+          prev.map((v) =>
+            v.id === videoId
+              ? {
+                  ...v,
+                  job: { ...(v.job || {}), remote: { endpoint: pixVerseEndpoint, jobId }, error: null },
+                }
+              : v
+          )
+        )
+      })
+      .catch((err) => {
+        setVideos((prev) =>
+          prev.map((v) =>
+            v.id === videoId
+              ? { ...v, status: 'failed', job: { ...(v.job || {}), status: 'failed', error: String(err?.message || 'PixVerse request failed') } }
+              : v
+          )
+        )
+      })
+  }
+
+  const regenerateVideo = (videoId) => {
+    startVideoGeneration(videoId)
   }
 
   const value = {

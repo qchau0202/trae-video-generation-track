@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const { errorHandler, notFound } = require('./middleware/error.middleware');
+const apiRoutes = require('./routes/api.routes');
 
 const app = express();
 
@@ -18,8 +19,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to TRAE x PixVerse API' });
 });
 
-// Import routes here
-// app.use('/api/v1', require('./routes'));
+app.use('/api/v1', apiRoutes);
 
 // Error Handling
 app.use(notFound);
